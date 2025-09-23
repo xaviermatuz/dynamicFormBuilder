@@ -1,0 +1,10 @@
+{
+    "name": "User Info Form",
+    "description": "Collect basic user data",
+    "fields": [
+        { "name": "full_name", "label": "Full Name", "field_type": "text", "required": true, "order": 1 },
+        { "name": "age", "label": "Age", "field_type": "number", "required": true, "order": 2 },
+        { "name": "birth_date", "label": "Birth Date", "field_type": "date", "required": false, "order": 3 },
+        { "name": "gender", "label": "Gender", "field_type": "select", "required": false, "options": ["M", "F", "Other"], "order": 4 }
+    ]
+}

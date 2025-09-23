@@ -1,0 +1,5 @@
+Django>=4.2
+djangorestframework>=3.14
+djangorestframework-simplejwt>=5.2.2
+drf-nested-routers>=0.93
+psycopg[binary]>=3.2

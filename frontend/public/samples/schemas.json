@@ -1,0 +1,26 @@
+[
+    {
+        "name": "User Basic Form",
+        "description": "Collect basic user data",
+        "fields": [
+            { "name": "full_name", "label": "Full Name", "field_type": "text", "required": true, "order": 1 },
+            { "name": "age", "label": "Age", "field_type": "number", "required": true, "order": 2 }
+        ]
+    },
+    {
+        "name": "Job Application",
+        "description": "Employment details",
+        "fields": [
+            { "name": "position", "label": "Position", "field_type": "text", "required": true, "order": 1 },
+            { "name": "resume", "label": "Resume", "field_type": "file", "required": true, "order": 2 }
+        ]
+    },
+    {
+        "name": "Survey",
+        "description": "Feedback survey",
+        "fields": [
+            { "name": "rating", "label": "Rating", "field_type": "number", "required": true, "order": 1 },
+            { "name": "comments", "label": "Comments", "field_type": "text", "required": false, "order": 2 }
+        ]
+    }
+]
