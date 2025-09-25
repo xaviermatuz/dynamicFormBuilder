@@ -1,8 +1,29 @@
-FROM python:3.12-slim-buster
-WORKDIR /app/backend
-ENV PYTHONDONTWRITEBYTECODE 1
+# --- Etapa 1: Base ---
+FROM python:3.12-slim
+
+# Evitar buffering de logs
 ENV PYTHONUNBUFFERED 1
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    build-essential libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalar dependencias de Python
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar proyecto
 COPY . .
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Collectstatic en producción
+RUN python manage.py collectstatic --noinput
+
+# Puerto para gunicorn
+EXPOSE 8000
+
+# Comando de arranque con Gunicorn
+CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]

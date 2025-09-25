@@ -3,13 +3,16 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
 from .views import (
     dashboard, RegisterView, 
-    FormDefinitionViewSet, FormSubmissionViewSet
+    FormDefinitionViewSet, FormSubmissionViewSet,
+    UserViewSet, LogEntryViewSet,
 )
 
-# --- DRF Flat Router for forms ---
+# --- DRF Flat Router ---
 router = DefaultRouter()
 router.register(r'forms', FormDefinitionViewSet, basename='form')
 router.register(r'submissions', FormSubmissionViewSet, basename='form-submission')
+router.register(r'users', UserViewSet, basename='user')
+router.register(r"logs", LogEntryViewSet, basename="log")
 
 # --- Nested Router for submissions under a specific form ---
 forms_router = routers.NestedSimpleRouter(router, r'forms', lookup='form')
