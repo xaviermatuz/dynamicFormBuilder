@@ -13,7 +13,7 @@ export default function App() {
                     <Suspense
                         fallback={
                             <div className='flex justify-center items-center h-screen'>
-                                <Spinner size='16' color='green-500' />
+                                <Spinner size='16' color='green-800' fullPage />
                             </div>
                         }
                     >

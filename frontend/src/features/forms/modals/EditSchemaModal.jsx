@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { notifySuccess, notifyError } from "../../../utils/toast";
+import { useApi } from "../../../hooks/api/useApi";
 
-export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, editItem, fetchData, page, pageSize, token }) {
+export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, editItem, fetchData, page, pageSize }) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [fields, setFields] = useState([]);
     const [fieldErrors, setFieldErrors] = useState({});
     const [atLeastOneError, setatLeastOneError] = useState("");
     const [nameError, setNameError] = useState("");
+
+    const { request, loading: apiLoading, error } = useApi();
 
     // Initialize modal state when editItem changes
     useEffect(() => {
@@ -73,7 +76,7 @@ export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, e
         let valid = true;
 
         if (!name.trim()) {
-            setNameError("Schema name is required.");
+            setNameError("Form name is required.");
             valid = false;
         } else if (fields.length === 0) {
             setatLeastOneError("At least one field is required.");
@@ -116,25 +119,20 @@ export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, e
         };
 
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/v1/forms/${editItem.id}/`, {
+            await request({
+                endpoint: `/forms/${editItem.id}/`,
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
+                body: payload,
             });
 
-            if (!res.ok) {
-                throw new Error("Failed to update Form");
-            }
-
             notifySuccess("Form updated.");
+
             await fetchData(page, pageSize);
+
             setIsEditModalOpen(false);
         } catch (err) {
             console.error(err);
-            notifyError("Error updating form. See console for details.");
+            notifyError("Error updating form.");
         }
     };
 

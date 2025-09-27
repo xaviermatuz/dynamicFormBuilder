@@ -5,7 +5,11 @@ module.exports = {
         "./src/**/*.{js,jsx}", // All JS and JSX files in src
     ],
     theme: {
-        extend: {},
+        extend: {
+            backgroundImage: {
+                abstract: "url('/img/abstract.jpg')",
+            },
+        },
     },
     plugins: [],
 };

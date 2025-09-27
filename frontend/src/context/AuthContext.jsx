@@ -1,87 +1,106 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { notifyError } from "../utils/toast";
+import Spinner from "../common/components/Spinner";
+import { useApi } from "../hooks/api/useApi";
+import { getToken, setToken, getRefreshToken, decodeToken, refreshToken } from "../services/authService";
+import { parseApiError } from "../utils/parseApiError";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        // Initialize user from access token if present
-        const token = localStorage.getItem("accessToken");
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split(".")[1]));
-                return { id: payload.user_id };
-            } catch {
-                return null;
-            }
-        }
-        return null;
-    });
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
+    const { request, loading: apiLoading, error } = useApi();
+
+    // --- Restore user on reload ---
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                let token = getToken();
+                if (token) {
+                    const decoded = decodeToken(token);
+                    const now = Math.floor(Date.now() / 1000);
+
+                    // If expired, try refresh via authService
+                    if (decoded?.exp && decoded.exp <= now) {
+                        token = await refreshToken(import.meta.env.VITE_API_URL);
+                    }
+
+                    const freshDecoded = token ? decodeToken(token) : null;
+                    setUser(freshDecoded || null);
+                } else {
+                    setUser(null);
+                }
+            } catch (err) {
+                console.error("Auth init failed:", err);
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initAuth();
+    }, []);
+
+    // --- Login ---
     const login = async (identifier, password) => {
         try {
             const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
-            const login_payload = {
+            const payload = {
                 [isEmail ? "email" : "username"]: identifier,
-                password: password, // example additional field
+                password,
             };
-            const res = await fetch("http://127.0.0.1:8000/api/v1/auth/token/", {
+
+            const res = await request({
+                endpoint: "/auth/token/",
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(login_payload),
+                body: payload,
             });
-            const data = await res.json();
 
-            if (!res.ok) throw new Error(data.detail || "Login failed");
+            setToken(res.access);
+            localStorage.setItem("refreshToken", res.refresh);
 
-            // Save token data in localStorage
-            localStorage.setItem("accessToken", data.access);
-            localStorage.setItem("refreshToken", data.refresh);
-            localStorage.setItem("id", data.user_id);
-            localStorage.setItem("last_login", data.last_login);
-            localStorage.setItem("username", data.username);
-            localStorage.setItem("roles", data.roles);
-
-            // Decode access token for user info
-            const payload = JSON.parse(atob(data.access.split(".")[1]));
-            setUser({ id: payload.user_id });
+            const decoded = decodeToken(res.access);
+            setUser(decoded);
 
             return true;
         } catch (err) {
-            console.error(err);
+            console.error("Login failed:", parseApiError(err.message));
             notifyError(err.message);
             return false;
         }
     };
 
-    const register = async ({ username, email, password, password2, firstName, lastName, role }) => {
+    // --- Register ---
+    const register = async (userData) => {
         try {
-            const res = await fetch("http://127.0.0.1:8000/api/v1/auth/register/", {
+            await request({
+                endpoint: "/auth/register/",
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, email, password, password2, firstName, lastName, role }),
+                body: userData,
             });
-            const data = await res.json();
 
-            if (!res.ok) throw new Error(data.detail || "Registration failed");
-
-            // Optionally auto-login after registration
-            return await login(email, password);
+            return await login(userData.username, userData.password);
         } catch (err) {
-            console.error(err);
+            console.error("Registration failed:", err);
             notifyError(err.message);
             return false;
         }
     };
 
+    // --- Logout ---
     const logout = () => {
         setUser(null);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        localStorage.removeItem("last_login");
     };
 
-    return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ user, loading: loading || apiLoading, login, register, logout, error }}>
+            {loading ? <Spinner fullPage size='16' color='blue-500' /> : children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => useContext(AuthContext);

@@ -2,7 +2,15 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-
+class AuditLog(models.Model):
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    method = models.CharField(max_length=10)       # GET, POST, etc.
+    path = models.CharField(max_length=255)        # /api/v1/forms/
+    status_code = models.IntegerField()
+    message = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
 class LogEntry(models.Model):
     level = models.CharField(max_length=50)
     message = models.TextField()
@@ -26,7 +34,12 @@ class FormDefinition(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        unique_together = ("name", "version")  # Prevent duplicate version numbers
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "version"],
+                name="unique_form_name_version"
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} v{self.version} ({'deleted' if self.is_deleted else 'active'})"
@@ -72,6 +85,12 @@ class FormField(models.Model):
 
     class Meta:
         ordering = ["order"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["form", "name"],
+                name="unique_form_field_name"
+            )
+        ]
 
     def clean(self):
         """Ensure select fields have options."""
@@ -91,6 +110,12 @@ class FormSubmission(models.Model):
 
     class Meta:
         ordering = ["-submitted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["form", "submitted_by", "form_version"],
+                name="unique_submission_per_user_per_version"
+            )
+        ]
 
     def save(self, *args, **kwargs):
         # Auto-fill form_version if not set

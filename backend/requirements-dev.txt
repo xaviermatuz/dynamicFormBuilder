@@ -1,0 +1,18 @@
+# Install everything from base production requirements
+-r requirements.txt
+
+# --- Debugging / Development ---
+django-debug-toolbar
+django-extensions
+
+# --- Testing ---
+pytest
+pytest-django
+pytest-cov
+factory-boy
+faker
+
+# --- Linters / Formatters ---
+black
+flake8
+isort

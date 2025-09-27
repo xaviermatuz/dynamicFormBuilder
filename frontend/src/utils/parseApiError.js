@@ -1,4 +1,3 @@
-// parseApiError.js
 export const parseApiError = (message) => {
     if (!message) return ["Unknown error"];
 

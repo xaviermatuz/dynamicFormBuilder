@@ -1,4 +1,3 @@
-// SwalWrapper.js
 import Swal from "sweetalert2";
 
 /**

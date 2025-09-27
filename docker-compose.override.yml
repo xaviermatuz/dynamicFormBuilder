@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: django_backend
+    restart: always
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
+
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env.docker
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: react_frontend
+    restart: always
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules           # avoid overwriting node_modules
+    ports:
+      - "5173:5173"                 # expose Vite/Next.js dev server
+    depends_on:
+      - backend
+    networks:
+      - app_network

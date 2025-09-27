@@ -1,5 +1,5 @@
 {
-    "name": "User Info Form",
+    "name": "User Subrscription Form",
     "description": "Collect basic user data",
     "fields": [
         { "name": "full_name", "label": "Full Name", "field_type": "text", "required": true, "order": 1 },

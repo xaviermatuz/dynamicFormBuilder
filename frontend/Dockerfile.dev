@@ -1,0 +1,17 @@
+# --- Development ---
+FROM node:23-alpine
+
+WORKDIR /app
+
+# Install dependencies separately so Docker caches them
+COPY package*.json ./
+RUN npm install
+
+# Copy rest of the source code
+COPY . .
+
+# Expose dev server port (5173 = Vite, 3000 = Next.js, adjust if needed)
+EXPOSE 5173
+
+# Start dev server with hot reload, accessible from host
+CMD ["npm", "run", "dev", "--", "--host"]

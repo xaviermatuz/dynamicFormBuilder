@@ -17,6 +17,12 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = "/static/"
+
+# Where collectstatic will put the static files (inside container)
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
 load_dotenv(BASE_DIR.parent / ".env") # This loads the variables from .env into os.environ
 
 # Quick-start development settings - unsuitable for production
@@ -59,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "corsheaders.middleware.CorsMiddleware",
+    "api.v1.middleware.AuditMiddleware",
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -91,7 +98,7 @@ DATABASES = {
             'NAME': os.getenv('DATABASE_NAME'),
             'USER': os.getenv('DATABASE_USER'),
             'PASSWORD': os.getenv('DATABASE_PASSWORD'),
-            'HOST': os.getenv('DATABASE_HOST'),
+            "HOST": os.getenv("DATABASE_HOST", "db"),
             'PORT': os.getenv('DATABASE_PORT'),
         }
 }
@@ -149,17 +156,22 @@ REST_FRAMEWORK = {
     ),
      "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend"
-    ]
+    ],
+    "EXCEPTION_HANDLER": "api.v1.exception_handler.custom_exception_handler",
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv("ACCESS_TOKEN_MINUTES", "60"))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv("REFRESH_TOKEN_DAYS", "1"))),
-    'ROTATE_REFRESH_TOKENS': False,
+    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
 
 # Logging en DB
 LOGGING = {
@@ -175,8 +187,15 @@ LOGGING = {
             "class": "logging.StreamHandler",
         },
     },
+    "loggers": {
+        "audit": {
+            "handlers": ["db", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
     "root": {
-        "handlers": ["db", "console"],
-        "level": "INFO",
+        "handlers": ["console"],
+        "level": "WARNING",
     },
 }

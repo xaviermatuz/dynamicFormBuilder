@@ -1,5 +1,23 @@
-Django>=4.2
-djangorestframework>=3.14
-djangorestframework-simplejwt>=5.2.2
-drf-nested-routers>=0.93
-psycopg[binary]>=3.2
+# --- Core Django ---
+Django>=5.0,<6.0
+
+# --- Database ---
+psycopg[binary]  # PostgreSQL driver
+
+# --- WSGI server for production ---
+gunicorn
+
+# --- Environment variables ---
+python-dotenv
+
+# --- Django REST Framework (API) ---
+djangorestframework
+django-filter       # filters for DRF
+djangorestframework-simplejwt  # JWT auth
+drf-nested-routers # nested routers
+
+# --- CORS (for React frontend API calls) ---
+django-cors-headers
+
+# --- Media/File support ---
+Pillow
