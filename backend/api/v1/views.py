@@ -150,6 +150,9 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
+    ordering_fields = ["created_at", "status_code", "method", "path"]
+    ordering = ["created_at"]
+
     # Move queryset logic into service
     def get_queryset(self):
         return AuditLogService.get_queryset(self.request.query_params)

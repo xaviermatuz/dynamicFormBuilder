@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { notifySuccess, notifyError } from "../../../utils/toast";
 import { useApi } from "../../../hooks/api/useApi";
 
-export default function EditUserModal({ isEditModalOpen, setIsEditModalOpen, editItem, fetchData, page, pageSize }) {
+export default function EditUserModal({ isEditModalOpen, setIsEditModalOpen, editItem, fetchData }) {
     const { request } = useApi();
     const [formData, setFormData] = useState({
         username: "",
@@ -108,7 +108,7 @@ export default function EditUserModal({ isEditModalOpen, setIsEditModalOpen, edi
             }
 
             notifySuccess("User updated successfully.");
-            await fetchData(page, pageSize);
+            await fetchData();
             setIsEditModalOpen(false);
         } catch (err) {
             console.error(err);

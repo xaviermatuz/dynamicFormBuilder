@@ -1,6 +1,7 @@
+import re
 from django.contrib.auth.models import User, Group
 from django.db import models
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, Q
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
@@ -167,12 +168,63 @@ class AuditLogService:
         status_code = params.get("status_code")
 
         if user:
-            queryset = queryset.filter(user=user)
+            if user.isdigit():
+                queryset = queryset.filter(user=user)
+            else:
+                queryset = queryset.filter(
+                    Q(user__username__icontains=user)
+                    | Q(user__email__icontains=user)
+                    | Q(user__first_name__icontains=user)
+                    | Q(user__last_name__icontains=user)
+                )
+
         if method:
-            queryset = queryset.filter(method=method)
+            queryset = queryset.filter(method__iexact=method)
         if status_code:
             queryset = queryset.filter(status_code=status_code)
 
+        # Global search (field:value or free text)
+        search = params.get("search")
+        if search:
+            # advanced query syntax like user:john status:500
+            field_queries = re.findall(r"(\w+):([^\s]+)", search)
+            for field, value in field_queries:
+                if field == "user":
+                    if value.isdigit():
+                        queryset = queryset.filter(user=value)
+                    else:
+                        queryset = queryset.filter(
+                            Q(user__username__icontains=value)
+                            | Q(user__email__icontains=value)
+                            | Q(user__first_name__icontains=value)
+                            | Q(user__last_name__icontains=value)
+                        )
+                elif field == "method":
+                    queryset = queryset.filter(method__iexact=value)
+                elif field in ["status", "status_code"]:
+                    queryset = queryset.filter(status_code=value)
+                elif field == "ip":
+                    queryset = queryset.filter(ip_address__icontains=value)
+                elif field == "path":
+                    queryset = queryset.filter(path__icontains=value)
+                elif field == "message":
+                    queryset = queryset.filter(message__icontains=value)
+
+                # remove processed part
+                search = search.replace(f"{field}:{value}", "").strip()
+
+            # fallback free text
+            if search:
+                queryset = queryset.filter(
+                      Q(user__username__icontains=search)
+                    | Q(user__email__icontains=search)
+                    | Q(user__first_name__icontains=search)
+                    | Q(user__last_name__icontains=search)
+                    | Q(path__icontains=search)
+                    | Q(message__icontains=search)
+                    | Q(ip_address__icontains=search)
+                )
+                
         return queryset
 
 class LogEntryService:

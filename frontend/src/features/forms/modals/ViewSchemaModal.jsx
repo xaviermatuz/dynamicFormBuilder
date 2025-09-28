@@ -1,5 +1,8 @@
-export default function ViewSchemaModal({ isViewModalOpen, setIsViewModalOpen, viewItem }) {
-    if (!isViewModalOpen || !viewItem) return null;
+import { formatDate } from "../../../utils/formatters";
+import FieldViewer from "../../../common/components/FieldViewer";
+
+export default function ViewSchemaModal({ isViewModalOpen, setIsViewModalOpen, schema }) {
+    if (!isViewModalOpen || !schema) return null;
 
     return (
         <div className='fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4'>
@@ -8,44 +11,26 @@ export default function ViewSchemaModal({ isViewModalOpen, setIsViewModalOpen, v
 
                 <div className='flex flex-col gap-2'>
                     <p>
-                        <span className='font-medium'>ID:</span> {viewItem.id}
+                        <span className='font-medium'>ID:</span> {schema.id}
                     </p>
                     <p>
-                        <span className='font-medium'>Name:</span> {viewItem.name}
+                        <span className='font-medium'>Name:</span> {schema.name}
                     </p>
                     <p>
-                        <span className='font-medium'>Description:</span> {viewItem.description || "-"}
+                        <span className='font-medium'>Description:</span> {schema.description || "-"}
                     </p>
                     <p>
-                        <span className='font-medium'>Created At:</span> {new Date(viewItem.created_at).toLocaleString()}
+                        <span className='font-medium'>Created At:</span> {formatDate(schema.created_at)}
                     </p>
 
-                    {viewItem.fields && viewItem.fields.length > 0 && (
+                    {schema.fields?.length > 0 && (
                         <div className='mt-4'>
                             <h4 className='font-medium mb-2'>Fields:</h4>
                             <div className='flex flex-col gap-2'>
-                                {viewItem.fields
+                                {schema.fields
                                     .sort((a, b) => a.order - b.order)
-                                    .map((field, idx) => (
-                                        <div key={idx} className='border p-2 rounded'>
-                                            <p>
-                                                <span className='font-medium'>Label:</span> {field.label}
-                                            </p>
-                                            <p>
-                                                <span className='font-medium'>Name:</span> {field.name}
-                                            </p>
-                                            <p>
-                                                <span className='font-medium'>Type:</span> {field.field_type}
-                                            </p>
-                                            <p>
-                                                <span className='font-medium'>Required:</span> {field.required ? "Yes" : "No"}
-                                            </p>
-                                            {field.field_type === "select" && field.options && (
-                                                <p>
-                                                    <span className='font-medium'>Options:</span> {field.options.join(", ")}
-                                                </p>
-                                            )}
-                                        </div>
+                                    .map((field) => (
+                                        <FieldViewer key={field.id || field.name} field={field} />
                                     ))}
                             </div>
                         </div>

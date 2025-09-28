@@ -1,212 +1,71 @@
-import React, { useState } from "react";
-import { notifySuccess, notifyError } from "../../../utils/toast";
+import React from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { useApi } from "../../../hooks/api/useApi";
+import { useCreateSchemaForm } from "../../../hooks/api/useCreateForm";
+import { notifySuccess, notifyError } from "../../../utils/toast";
 
-export default function CreateSchemaModal({ isCreationModalOpen, setIsCreationModalOpen, fetchData }) {
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [fields, setFields] = useState([]);
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [atLeastOneError, setatLeastOneError] = useState("");
-    const [nameError, setNameError] = useState("");
+export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
+    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors, reset } = useCreateSchemaForm();
 
-    const { request, loading: apiLoading, error } = useApi();
-
-    const resetForm = () => {
-        setName("");
-        setDescription("");
-        setFields([]);
-        setFieldErrors({});
-        setNameError("");
-        setatLeastOneError("");
-    };
-
-    const handleClose = () => {
-        resetForm();
-        setIsCreationModalOpen(false);
-    };
-
-    const handleAddField = () => {
-        setFields([...fields, { name: "", label: "", field_type: "text", required: false, order: fields.length + 1, options: [] }]);
-    };
-
-    const handleRemoveField = (index) => {
-        const updatedFields = fields.filter((_, i) => i !== index).map((f, i) => ({ ...f, order: i + 1 }));
-        setFields(updatedFields);
-
-        const updatedErrors = { ...fieldErrors };
-        delete updatedErrors[index];
-        setFieldErrors(updatedErrors);
-    };
-
-    const handleFieldChange = (index, key, value) => {
-        const updatedFields = [...fields];
-        updatedFields[index][key] = value;
-
-        if (key === "label") {
-            updatedFields[index].name = value.toLowerCase().replace(/\s+/g, "_");
-        }
-
-        setFields(updatedFields);
-
-        // Validate + update errors inline
-        setFieldErrors((prev) => {
-            const updatedErrors = { ...prev };
-            let fieldError = updatedErrors[index] ? { ...updatedErrors[index] } : {};
-
-            if (key === "label") {
-                if (!value.trim()) {
-                    fieldError.label = "Field label is required.";
-                } else {
-                    fieldError.label = "";
-                }
-            }
-
-            if (key === "options") {
-                if (!value || value.length === 0 || value.every((opt) => !opt.trim())) {
-                    fieldError.options = "Options are required for select fields.";
-                } else {
-                    fieldError.options = "";
-                }
-            }
-
-            // cleanup: remove empty error fields
-            if (!fieldError.label && !fieldError.options) {
-                delete updatedErrors[index];
-            } else {
-                updatedErrors[index] = fieldError;
-            }
-
-            return updatedErrors;
-        });
-    };
-
-    const validate = () => {
-        let valid = true;
-
-        if (!name.trim()) {
-            setNameError("Form name is required.");
-            valid = false;
-        } else if (fields.length === 0) {
-            setatLeastOneError("At least one field is required.");
-            valid = false;
-        } else {
-            setNameError("");
-            setatLeastOneError("");
-        }
-
-        const errors = {};
-        fields.forEach((field, idx) => {
-            const fieldError = {};
-
-            if (!field.label.trim()) {
-                fieldError.label = "Field label is required.";
-                valid = false;
-            }
-
-            if (field.field_type === "select" && (!field.options || field.options.length === 0 || field.options.every((opt) => !opt.trim()))) {
-                fieldError.options = "Options are required for select fields.";
-                valid = false;
-            }
-
-            if (Object.keys(fieldError).length > 0) {
-                errors[idx] = fieldError; // always object
-            }
-        });
-
-        setFieldErrors(errors);
-        return valid;
-    };
+    if (!isOpen) return null;
 
     const handleSave = async () => {
         if (!validate()) return;
-
-        const payload = {
-            name,
-            description,
-            fields,
-        };
-
         try {
-            await request({
-                endpoint: "/forms/",
-                method: "POST",
-                body: payload,
-            });
-
-            notifySuccess("Form created.");
-            handleClose();
-
-            if (fetchData) fetchData(); // Refresh data in parent component
-        } catch (error) {
-            console.error(error);
-            notifyError("Error creating Form. See console for details.");
+            await onSave({ name, description, fields });
+            reset();
+            onClose();
+        } catch (err) {
+            let message = err.message || "Failed to save.";
+            message = message.replace(/^non_field_errors:\s*/, "");
+            notifyError(message);
         }
     };
 
-    if (!isCreationModalOpen) return null;
-
     return (
         <Tooltip.Provider delayDuration={200}>
-            <div className='fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-2 sm:p-4'>
-                <div className='bg-white rounded-lg shadow-lg w-full max-w-md sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl p-6 overflow-y-auto max-h-[90vh]'>
-                    <h3 className='text-xl sm:text-2xl font-semibold mb-4'>Create Form</h3>
+            <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4'>
+                <div className='bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 overflow-y-auto max-h-[90vh]'>
+                    <h3 className='text-xl font-semibold mb-4'>Create Form</h3>
 
-                    <div className='flex flex-col gap-3'>
-                        <input
-                            type='text'
-                            placeholder='Form Name'
-                            value={name}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                setName(value);
+                    {/* Name */}
+                    <input
+                        type='text'
+                        placeholder='Form Name'
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={`border p-2 rounded w-full ${errors.name ? "border-red-500" : ""}`}
+                    />
+                    {errors.name && <span className='text-red-500 text-sm'>{errors.name}</span>}
 
-                                // Inline validation
-                                if (!value.trim()) {
-                                    setNameError("Form name is required.");
-                                } else {
-                                    setNameError("");
-                                }
-                            }}
-                            className={`border p-2 rounded w-full ${nameError ? "border-red-500" : ""}`}
-                        />
-                        {nameError && <span className='text-red-500 text-sm'>{nameError}</span>}
-                        <textarea
-                            placeholder='Description'
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className='border p-2 rounded w-full'
-                        />
-                    </div>
+                    {/* Description */}
+                    <textarea
+                        placeholder='Description'
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className='border p-2 rounded w-full mt-3'
+                    />
 
+                    {/* Fields */}
                     <div className='mt-4 flex flex-col gap-3'>
                         <h4 className='font-medium'>Fields</h4>
-                        {atLeastOneError && <span className='text-red-500 text-sm'>{atLeastOneError}</span>}
-                        {fields.map((field, idx) => (
-                            <div key={idx} className='flex flex-col sm:flex-row gap-2 items-center border p-2 rounded'>
+                        {errors.fields && <span className='text-red-500 text-sm'>{errors.fields}</span>}
+
+                        {fields.map((f, i) => (
+                            <div key={i} className='flex flex-col sm:flex-row gap-2 items-center border p-2 rounded'>
                                 <div className='flex-1 flex flex-col gap-1 w-auto'>
-                                    <Tooltip.Root>
-                                        <Tooltip.Trigger asChild>
-                                            <input
-                                                type='text'
-                                                placeholder='Field Label'
-                                                value={field.label}
-                                                onChange={(e) => handleFieldChange(idx, "label", e.target.value)}
-                                                className={`border p-2 rounded w-full ${fieldErrors[idx] ? "border-red-500" : ""}`}
-                                            />
-                                        </Tooltip.Trigger>
-                                        <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                            Name of the field in the form
-                                            <Tooltip.Arrow className='fill-gray-800' />
-                                        </Tooltip.Content>
-                                    </Tooltip.Root>
-                                    {fieldErrors[idx]?.label && <span className='text-red-500 text-sm'>{fieldErrors[idx].label}</span>}
+                                    <input
+                                        type='text'
+                                        placeholder='Field Label'
+                                        value={f.label}
+                                        onChange={(e) => updateField(i, "label", e.target.value)}
+                                        className={`border p-2 rounded flex-1 ${errors[i]?.label ? "border-red-500" : ""}`}
+                                    />
+                                    {errors[i]?.label && <span className='text-red-500 text-sm'>{errors[i]?.label}</span>}
                                 </div>
 
                                 <select
-                                    value={field.field_type}
-                                    onChange={(e) => handleFieldChange(idx, "field_type", e.target.value)}
+                                    value={f.field_type}
+                                    onChange={(e) => updateField(i, "field_type", e.target.value)}
                                     className='border p-2 rounded'
                                 >
                                     <option value='text'>Text</option>
@@ -214,64 +73,64 @@ export default function CreateSchemaModal({ isCreationModalOpen, setIsCreationMo
                                     <option value='date'>Date</option>
                                     <option value='select'>Select</option>
                                 </select>
-
                                 <Tooltip.Root>
                                     <Tooltip.Trigger asChild>
                                         <input
                                             type='checkbox'
-                                            checked={field.required}
-                                            onChange={(e) => handleFieldChange(idx, "required", e.target.checked)}
+                                            checked={f.required}
+                                            onChange={(e) => updateField(i, "required", e.target.checked)}
                                             className='mt-1'
                                         />
                                     </Tooltip.Trigger>
                                     <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                        Is this field required?
+                                        Is this field required on your form?
                                         <Tooltip.Arrow className='fill-gray-800' />
                                     </Tooltip.Content>
                                 </Tooltip.Root>
 
                                 <div className='w-auto'>
-                                    {field.field_type === "select" && (
+                                    {f.field_type === "select" && (
                                         <div className='flex-1 flex flex-col gap-1 w-full'>
                                             <input
                                                 type='text'
                                                 placeholder='Options (comma-separated)'
-                                                value={field.options.join(",")}
+                                                value={f.options.join(",")}
                                                 onChange={(e) =>
-                                                    handleFieldChange(
-                                                        idx,
+                                                    updateField(
+                                                        i,
                                                         "options",
                                                         e.target.value.split(",").map((opt) => opt.trim())
                                                     )
                                                 }
-                                                className={`border p-2 rounded flex-1 ${
-                                                    fieldErrors[idx]?.options ? "border-red-500" : "border-gray-300"
-                                                }`}
+                                                className={`border p-2 rounded flex-1 ${f?.options ? "border-red-500" : "border-gray-300"}`}
                                             />
                                         </div>
                                     )}
-                                    {fieldErrors[idx]?.options && <span className='text-red-500 text-sm'>{fieldErrors[idx].options}</span>}
                                 </div>
 
-                                <button
-                                    onClick={() => handleRemoveField(idx)}
-                                    className='px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 mt-2 sm:mt-0'
-                                >
+                                <button onClick={() => removeField(i)} className='px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600'>
                                     Remove
                                 </button>
                             </div>
                         ))}
 
-                        <button onClick={handleAddField} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
+                        <button onClick={addField} className='mt-3 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
                             Add Field
                         </button>
                     </div>
 
-                    <div className='flex flex-col sm:flex-row justify-end mt-6 gap-2'>
-                        <button onClick={handleSave} className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full sm:w-auto'>
+                    {/* Actions */}
+                    <div className='flex justify-end mt-6 gap-2'>
+                        <button onClick={handleSave} className='px-4 py-2 bg-blue-500 text-white rounded'>
                             Save
                         </button>
-                        <button onClick={handleClose} className='px-4 py-2 rounded border w-full sm:w-auto'>
+                        <button
+                            onClick={() => {
+                                onClose();
+                                reset();
+                            }}
+                            className='px-4 py-2 border rounded'
+                        >
                             Cancel
                         </button>
                     </div>

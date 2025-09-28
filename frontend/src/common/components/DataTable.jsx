@@ -1,28 +1,36 @@
 import React from "react";
 import clsx from "clsx";
 import { XIcon } from "lucide-react";
+import Spinner from "./Spinner";
 
-export default function DataTable({
-    columns,
-    items,
-    page,
-    setPage,
-    pageSize,
-    setPageSize,
-    totalCount,
-    sortConfig,
-    onSort,
-    renderRow,
-    renderMobileRow,
-    getPageNumbers,
-    loading,
-    error,
-    searchable = false,
-    search,
-    setSearch,
-    optionsMenu,
-}) {
+export default function DataTable({ columns, items, renderRow, renderMobileRow, pagination, sorting, searchProps, optionsMenu, loading, error }) {
+    const { page, setPage, pageSize, setPageSize, totalCount } = pagination;
+    const { sortConfig, onSort } = sorting || {};
+    const { searchable = false, search, setSearch } = searchProps || {};
+
     const totalPages = Math.ceil(totalCount / pageSize) || 1;
+
+    // Function to generate visible page numbers with ellipsis
+    const getPageNumbers = (current, total) => {
+        const pages = [];
+        if (total <= 7) {
+            // Small number of pages: show all
+            for (let i = 1; i <= total; i++) pages.push(i);
+        } else {
+            // Always show first and last
+            pages.push(1);
+
+            const left = Math.max(current - 1, 2);
+            const right = Math.min(current + 1, total - 1);
+
+            if (left > 2) pages.push("...");
+            for (let i = left; i <= right; i++) pages.push(i);
+            if (right < total - 1) pages.push("...");
+
+            pages.push(total);
+        }
+        return pages;
+    };
 
     return (
         <div className='relative overflow-x-auto'>
@@ -32,7 +40,7 @@ export default function DataTable({
             {/* Loading overlay */}
             {loading && (
                 <div className='absolute inset-0 flex items-center justify-center bg-white/70 z-10'>
-                    <p className='text-gray-600 font-medium'>Loading...</p>
+                    <Spinner size='16' color='blue-500' />
                 </div>
             )}
 
@@ -87,7 +95,7 @@ export default function DataTable({
                     </thead>
                     <tbody>
                         {items.length > 0 ? (
-                            items.map((item) => renderRow(item))
+                            items.map((item) => <React.Fragment key={item.id || item.key || JSON.stringify(item)}>{renderRow(item)}</React.Fragment>)
                         ) : (
                             <tr>
                                 <td colSpan={columns.length} className='text-center py-4 text-gray-500 italic'>
@@ -102,7 +110,7 @@ export default function DataTable({
             {/* Mobile stacked table */}
             <div className='md:hidden flex flex-col gap-4'>
                 {items.length > 0 ? (
-                    items.map((item) => renderMobileRow(item))
+                    items.map((item) => <React.Fragment key={item.id || item.key || JSON.stringify(item)}>{renderMobileRow(item)}</React.Fragment>)
                 ) : (
                     <div className='text-center py-4 text-gray-500 italic'>No items found.</div>
                 )}
