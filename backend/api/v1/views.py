@@ -72,6 +72,13 @@ class FormSubmissionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         form_pk = self.kwargs.get("form_pk")
         queryset = FormSubmission.objects.all().order_by("-submitted_at")
+        
+        user = self.request.user
+        user_roles = list(user.groups.values_list("name", flat=True))
+
+        if "Admin" not in user_roles and "Editor" not in user_roles and not user.is_superuser:
+            queryset = queryset.filter(submitted_by=user)
+                
         if form_pk:
             queryset = queryset.filter(form_id=form_pk)
         form_version = self.request.query_params.get("form_version")
