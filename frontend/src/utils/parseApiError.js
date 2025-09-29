@@ -1,35 +1,36 @@
-export const parseApiError = (message) => {
-    if (!message) return ["Unknown error"];
+export const parseApiError = (error) => {
+    if (!error) return ["Unknown error"];
 
-    const parts = message.split(/\d+:\s/).filter(Boolean);
+    let data = error;
+
+    // If Axios-style error, unwrap the response
+    if (error.response?.data) {
+        data = error.response.data;
+    } else if (error.detail) {
+        data = error.detail;
+    } else if (error.message && typeof error.message === "string") {
+        data = error.message;
+    }
+
     const allMessages = [];
 
-    const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, " ");
+    // ✅ If it's already an object (like your DRF error), just walk it
+    if (typeof data === "object" && data !== null) {
+        Object.values(data).forEach((val) => {
+            if (Array.isArray(val)) {
+                val.forEach((msg) => allMessages.push(String(msg)));
+            } else if (typeof val === "string") {
+                allMessages.push(val);
+            }
+        });
+    }
+    // ✅ If it's just a string, split and clean it
+    else if (typeof data === "string") {
+        data.split("|").forEach((segment) => {
+            const clean = segment.includes(":") ? segment.split(":").slice(1).join(":").trim() : segment.trim();
+            if (clean) allMessages.push(clean);
+        });
+    }
 
-    parts.forEach((part, index) => {
-        try {
-            const obj = JSON.parse(part);
-
-            const processObject = (obj, prefix = "") => {
-                Object.entries(obj).forEach(([key, value]) => {
-                    if (Array.isArray(value)) {
-                        value.forEach((v) => allMessages.push(`Item ${index}: ${capitalize(key)} ${v}`));
-                    } else if (typeof value === "object" && value !== null) {
-                        // Flatten nested objects
-                        Object.entries(value).forEach(([subKey, subValue]) => {
-                            if (Array.isArray(subValue)) {
-                                subValue.forEach((v) => allMessages.push(`Item ${index}: ${capitalize(subKey)} ${v}`));
-                            }
-                        });
-                    }
-                });
-            };
-
-            processObject(obj);
-        } catch (err) {
-            allMessages.push(`Item ${index}: ${part}`);
-        }
-    });
-
-    return allMessages; // array of clean text messages
+    return allMessages.length ? allMessages : ["Unknown error"];
 };

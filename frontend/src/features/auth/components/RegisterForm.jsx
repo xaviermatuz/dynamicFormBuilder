@@ -56,6 +56,7 @@ export default function RegisterForm({ onSubmit }) {
         setErrors(newErrors);
 
         const hasErrors = Object.values(newErrors).some(Boolean);
+        console.log(newErrors);
         if (!hasErrors) {
             onSubmit(form);
         }

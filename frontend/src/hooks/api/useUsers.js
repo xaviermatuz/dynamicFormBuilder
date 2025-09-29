@@ -55,8 +55,8 @@ export function useUsers(request, { user }) {
         localStorage.setItem("filterState", filterState);
 
         doFetch();
-        // refresh every 5 min, but clear on unmount
-        const interval = setInterval(doFetch, 5 * 60 * 1000);
+        // refresh every 2 min, but clear on unmount
+        const interval = setInterval(doFetch, 2 * 60 * 1000);
         return () => clearInterval(interval);
     }, [page, pageSize, debouncedSearch, filterState, sortConfig]);
 

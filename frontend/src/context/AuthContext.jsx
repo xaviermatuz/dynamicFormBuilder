@@ -75,16 +75,26 @@ export const AuthProvider = ({ children }) => {
     // --- Register ---
     const register = async (userData) => {
         try {
-            await request({
+            const res = await request({
                 endpoint: "/auth/register/",
                 method: "POST",
                 body: userData,
             });
 
-            return await login(userData.username, userData.password);
+            if (res.access && res.refresh) {
+                setToken(res.access);
+                localStorage.setItem("refreshToken", res.refresh);
+
+                const decoded = decodeToken(res.access);
+                setUser(decoded);
+                return true;
+            }
+
+            const password = userData.password.trim();
+            return await login(userData.username.trim().toLowerCase(), password);
         } catch (err) {
             console.error("Registration failed:", err);
-            notifyError(err.message);
+            parseApiError(err).forEach((msg) => notifyError(msg));
             return false;
         }
     };

@@ -13,7 +13,6 @@ import { useApi } from "../../../hooks/api/useApi";
 import {
     FileText,
     FilePlusIcon,
-    FileInputIcon,
     ScanEyeIcon,
     SquareChartGanttIcon,
     PencilIcon,
@@ -21,6 +20,7 @@ import {
     ArchiveRestoreIcon,
     Trash2Icon,
     NotebookPenIcon,
+    FileUpIcon,
 } from "lucide-react";
 import { useForms } from "../../../hooks/api/useForms";
 import { uploadForms, restoreForm, deleteForm } from "../../../services/FormService";
@@ -66,12 +66,12 @@ export default function FormsPage() {
 
     // Columns
     const baseColumns = [
-        { key: "id", label: "ID" },
         { key: "name", label: "Name" },
         { key: "created_at", label: "Created" },
         { key: "actions", label: "Actions", isAction: true },
     ];
     const adminColumns = [
+        { key: "id", label: "ID" },
         { key: "version", label: "Version" },
         { key: "created_by", label: "Created By" },
     ];
@@ -168,6 +168,7 @@ export default function FormsPage() {
 
                 <div className='relative overflow-x-auto'>
                     <DataTable
+                        selectable
                         columns={columns}
                         items={filteredItems}
                         pagination={pagination}
@@ -212,7 +213,7 @@ export default function FormsPage() {
                                                     className='flex items-center justify-center bg-blue-500 text-white rounded hover:bg-blue-600
                                                    w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2'
                                                 >
-                                                    <FileInputIcon className='w-5 h-5' />
+                                                    <FileUpIcon className='w-5 h-5' />
                                                     <span className='hidden sm:inline ml-2'>Upload</span>
                                                 </button>
                                             </Tooltip.Trigger>
@@ -246,7 +247,6 @@ export default function FormsPage() {
                                                             checked={showAllVersions}
                                                             onChange={(e) => {
                                                                 setShowAllVersions(e.target.checked);
-                                                                setPage(1); // reset pagination
                                                             }}
                                                             className='h-4 w-4'
                                                         />
@@ -259,17 +259,20 @@ export default function FormsPage() {
                                 )}
                             </>
                         }
-                        renderRow={(item) => (
+                        renderRow={(item, { isSelected, toggleRow }) => (
                             <tr key={item.id} className='border-t hover:bg-gray-50 text-center'>
-                                <td className='py-2 px-4'>{item.id}</td>
+                                <td className='py-2 px-4 text-center'>
+                                    <input type='checkbox' checked={isSelected} onChange={toggleRow} />
+                                </td>
                                 <td className='py-2 px-4'>{item.name}</td>
+                                <td className='py-2 px-4'>{new Date(item.created_at).toLocaleString()}</td>
                                 {user.roles?.includes("admin") && (
                                     <>
+                                        <td className='py-2 px-4'>{item.id}</td>
                                         <td className='py-2 px-4'>{item.version}</td>
                                         <td className='py-2 px-4'>{item.created_by}</td>
                                     </>
                                 )}
-                                <td className='py-2 px-4'>{new Date(item.created_at).toLocaleString()}</td>
                                 <td className='py-2 px-4 flex flex-wrap gap-1 justify-center'>
                                     {user.roles?.includes("viewer") ? (
                                         <Tooltip.Root>
@@ -406,9 +409,6 @@ export default function FormsPage() {
                         renderMobileRow={(item) => (
                             <div key={item.id} className='bg-white shadow rounded p-4 flex flex-col gap-2 text-sm sm:text-base'>
                                 <div>
-                                    <span className='font-medium'>ID:</span> {item.id}
-                                </div>
-                                <div>
                                     <span className='font-medium'>Name:</span> {item.name}
                                 </div>
                                 <div>
@@ -416,42 +416,62 @@ export default function FormsPage() {
                                 </div>
                                 <div className='flex flex-wrap gap-2 mt-2'>
                                     {/* Preview */}
-                                    <Tooltip.Root>
-                                        <Tooltip.Trigger asChild>
-                                            <button
-                                                className='px-2 py-1 bg-slate-500 text-white rounded hover:bg-slate-600'
-                                                onClick={() => {
-                                                    setPreviewItem(item);
-                                                    setIsPreviewOpen(true);
-                                                }}
-                                            >
-                                                <SquareChartGanttIcon />
-                                            </button>
-                                        </Tooltip.Trigger>
-                                        <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                            Preview this form
-                                            <Tooltip.Arrow className='fill-gray-800' />
-                                        </Tooltip.Content>
-                                    </Tooltip.Root>
-
-                                    {/* View */}
-                                    <Tooltip.Root>
-                                        <Tooltip.Trigger asChild>
-                                            <button
-                                                className='px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600'
-                                                onClick={() => {
-                                                    setViewItem(item);
-                                                    setIsViewModalOpen(true);
-                                                }}
-                                            >
-                                                <ScanEyeIcon />
-                                            </button>
-                                        </Tooltip.Trigger>
-                                        <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                            View form details
-                                            <Tooltip.Arrow className='fill-gray-800' />
-                                        </Tooltip.Content>
-                                    </Tooltip.Root>
+                                    {user.roles?.includes("viewer") ? (
+                                        <Tooltip.Root>
+                                            <Tooltip.Trigger asChild>
+                                                <button
+                                                    className='px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600'
+                                                    onClick={() => {
+                                                        setPreviewItem(item);
+                                                        setIsPreviewOpen(true);
+                                                    }}
+                                                >
+                                                    <NotebookPenIcon />
+                                                </button>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
+                                                Fill this form
+                                                <Tooltip.Arrow className='fill-gray-800' />
+                                            </Tooltip.Content>
+                                        </Tooltip.Root>
+                                    ) : (
+                                        <>
+                                            <Tooltip.Root>
+                                                <Tooltip.Trigger asChild>
+                                                    <button
+                                                        className='px-2 py-1 bg-slate-500 text-white rounded hover:bg-slate-600'
+                                                        onClick={() => {
+                                                            setPreviewItem(item);
+                                                            setIsPreviewOpen(true);
+                                                        }}
+                                                    >
+                                                        <SquareChartGanttIcon></SquareChartGanttIcon>
+                                                    </button>
+                                                </Tooltip.Trigger>
+                                                <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
+                                                    Preview this form
+                                                    <Tooltip.Arrow className='fill-gray-800' />
+                                                </Tooltip.Content>
+                                            </Tooltip.Root>
+                                            <Tooltip.Root>
+                                                <Tooltip.Trigger asChild>
+                                                    <button
+                                                        className='px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600'
+                                                        onClick={() => {
+                                                            setViewItem(item);
+                                                            setIsViewModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <ScanEyeIcon></ScanEyeIcon>
+                                                    </button>
+                                                </Tooltip.Trigger>
+                                                <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
+                                                    View form details
+                                                    <Tooltip.Arrow className='fill-gray-800' />
+                                                </Tooltip.Content>
+                                            </Tooltip.Root>
+                                        </>
+                                    )}
 
                                     {/* Role-based actions */}
                                     {user && allowedRoles.some((role) => user.roles?.includes(role)) && (

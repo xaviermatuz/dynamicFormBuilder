@@ -11,7 +11,13 @@ export const InputWithIcon = ({ icon: Icon, error, type = "text", ...props }) =>
         <div className='w-full'>
             <div className={`flex items-center border rounded p-2 ${error ? "border-red-500" : "border-gray-300"}`}>
                 {Icon && <Icon className='w-5 h-5 text-gray-400 mr-2' />}
-                <input {...props} type={inputType} className='w-full focus:outline-none bg-transparent capitalize' />
+                <input
+                    {...props}
+                    type={inputType}
+                    className={`w-full focus:outline-none bg-transparent ${
+                        inputType === "email" || inputType === "password" ? "normal-case" : "capitalize"
+                    }`}
+                />
                 {isPassword && (
                     <button
                         type='button'
