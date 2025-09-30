@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { notifySuccess, notifyError } from "../../../utils/toast";
+import { notifySuccess, notifyError, notifyWarning } from "../../../utils/toast";
+import { exportToJson } from "../../../utils/exportToJson";
 import { useDeleteItem } from "../../../hooks/api/useDelete";
 import DataTable from "../../../common/components/DataTable";
+import ExportButtons from "../../../common/components/ExportButtoms";
 import ViewSchemaModal from "../modals/ViewSchemaModal";
 import CreateSchemaModal from "../modals/CreateSchemaModal";
 import EditSchemaModal from "../modals/EditSchemaModal";
@@ -24,6 +26,7 @@ import {
 } from "lucide-react";
 import { useForms } from "../../../hooks/api/useForms";
 import { uploadForms, restoreForm, deleteForm } from "../../../services/FormService";
+import StateFilterDropdown from "../../../common/components/stateFilterDropdown";
 
 export default function FormsPage() {
     const { user } = useAuth();
@@ -78,6 +81,8 @@ export default function FormsPage() {
     const columns = user?.roles?.includes("admin") ? [...baseColumns.slice(0, 2), ...adminColumns, ...baseColumns.slice(2)] : baseColumns;
 
     const searchableColumns = columns.filter((col) => !col.isAction).map((col) => col.key);
+
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const handleSort = (key) => {
         setSortConfig((prev) => {
@@ -142,7 +147,6 @@ export default function FormsPage() {
     const handleDelete = async (id) => {
         const success = await deleteForm(deleteItem, id, user);
         if (success) {
-            // setItems(items.filter((item) => item.id !== id));
             refetch();
         }
     };
@@ -223,35 +227,40 @@ export default function FormsPage() {
                                             </Tooltip.Content>
                                         </Tooltip.Root>
 
+                                        <ExportButtons
+                                            items={items}
+                                            exporter={exportToJson}
+                                            notifyWarning={notifyWarning}
+                                            selectedIds={selectedIds}
+                                            setSelectedIds={setSelectedIds}
+                                        />
+
                                         {user && user.roles?.includes("admin") && (
                                             <>
+                                                <StateFilterDropdown filterState={filterState} setFilterState={setFilterState} />
+
                                                 <div className='flex items-center gap-2'>
-                                                    <label htmlFor='stateFilter' className='text-sm font-medium'>
-                                                        Show:
-                                                    </label>
-                                                    <select
-                                                        id='stateFilter'
-                                                        value={filterState}
-                                                        onChange={(e) => setFilterState(e.target.value)}
-                                                        className='border rounded px-2 py-1'
-                                                    >
-                                                        <option value='active'>Active Only</option>
-                                                        <option value='deleted'>Deleted Only</option>
-                                                        <option value='all'>All Forms</option>
-                                                    </select>
-                                                </div>
-                                                <div className='flex items-center gap-2'>
-                                                    <label className='flex items-center text-sm font-medium gap-2'>
-                                                        <input
-                                                            type='checkbox'
-                                                            checked={showAllVersions}
-                                                            onChange={(e) => {
-                                                                setShowAllVersions(e.target.checked);
-                                                            }}
-                                                            className='h-4 w-4'
-                                                        />
-                                                        Show all versions
-                                                    </label>
+                                                    <Tooltip.Root>
+                                                        <Tooltip.Trigger asChild>
+                                                            <label className='flex items-center ms-2 text-sm font-medium text-gray-900 gap-2'>
+                                                                <input
+                                                                    id='show-versions-checkbox'
+                                                                    type='checkbox'
+                                                                    checked={showAllVersions}
+                                                                    onChange={(e) => {
+                                                                        setShowAllVersions(e.target.checked);
+                                                                        refetch();
+                                                                    }}
+                                                                    className='w-4 h-4 text-blue-600 bg-white border-gray-300 rounded-sm focus:ring-blue-500 focus:ring-2'
+                                                                />
+                                                                Show all versions
+                                                            </label>
+                                                        </Tooltip.Trigger>
+                                                        <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
+                                                            Show old entries
+                                                            <Tooltip.Arrow className='fill-gray-800' />
+                                                        </Tooltip.Content>
+                                                    </Tooltip.Root>
                                                 </div>
                                             </>
                                         )}
@@ -555,6 +564,8 @@ export default function FormsPage() {
                                 </div>
                             </div>
                         )}
+                        selectedIds={selectedIds}
+                        setSelectedIds={setSelectedIds}
                     />
                 </div>
 

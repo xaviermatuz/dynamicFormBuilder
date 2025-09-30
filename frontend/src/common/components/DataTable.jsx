@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useCallback } from "react";
 import clsx from "clsx";
-import { FileDownIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import Spinner from "./Spinner";
-import { exportToJson } from "../../utils/exportToJson";
-import { notifyWarning } from "../../utils/toast";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import SelectAllCheckbox from "./SelectAllCheckbox";
+import RowCheckbox from "./RowCheckbox";
 
 export default function DataTable({
     selectable = false,
@@ -18,6 +17,8 @@ export default function DataTable({
     optionsMenu,
     loading,
     error,
+    selectedIds,
+    setSelectedIds,
 }) {
     const { page, setPage, pageSize, setPageSize, totalCount } = pagination;
     const { sortConfig, onSort } = sorting || {};
@@ -25,24 +26,12 @@ export default function DataTable({
 
     const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
-    const idKey = (i) => i.id || i.key || JSON.stringify(i);
-    const [selectedIds, setSelectedIds] = React.useState([]);
+    const idKey = useCallback((item) => item.id || item.key || JSON.stringify(item), []);
 
     const toggleRow = (item) => {
-        const key = item.id || item.key || JSON.stringify(item);
+        if (!selectable || !setSelectedIds) return;
+        const key = idKey(item);
         setSelectedIds((prev) => (prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key]));
-    };
-
-    const toggleAll = () => {
-        if (selectedIds.length === items.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(items.map((i) => i.id || i.key || JSON.stringify(i)));
-        }
-    };
-
-    const getSelectedData = () => {
-        return items.filter((i) => selectedIds.includes(i.id || i.key || JSON.stringify(i)));
     };
 
     // Function to generate visible page numbers with ellipsis
@@ -91,7 +80,7 @@ export default function DataTable({
                                 setSearch(e.target.value);
                                 setPage(1);
                             }}
-                            className='w-full border px-3 py-2 rounded pr-8' // 👈 padding for icon
+                            className='w-full border px-3 py-2 rounded pr-8'
                         />
                         {search && (
                             <button
@@ -107,52 +96,7 @@ export default function DataTable({
                         )}
                     </div>
 
-                    {optionsMenu && (
-                        <div className='flex flex-row flex-wrap justify-center sm:justify-start gap-2'>
-                            {optionsMenu}
-                            <Tooltip.Root>
-                                <Tooltip.Trigger asChild>
-                                    <button
-                                        onClick={() => {
-                                            const selected = items.filter((i) => selectedIds.includes(idKey(i)));
-                                            if (selected.length === 0) {
-                                                notifyWarning("No rows selected!");
-                                                return;
-                                            }
-                                            exportToJson(selected, "selected-rows.json");
-                                        }}
-                                        className='flex items-center justify-center bg-green-500 text-white rounded hover:bg-green-600
-                                                   w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2'
-                                    >
-                                        <FileDownIcon className='w-5 h-5' />
-                                        <span className='hidden sm:inline ml-2'>Selected</span>
-                                    </button>
-                                </Tooltip.Trigger>
-                                <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                    Download Selected schema
-                                    <Tooltip.Arrow className='fill-gray-800' />
-                                </Tooltip.Content>
-                            </Tooltip.Root>
-
-                            {/* Export All */}
-                            <Tooltip.Root>
-                                <Tooltip.Trigger asChild>
-                                    <button
-                                        onClick={() => exportToJson(items, "all-rows.json")}
-                                        className='flex items-center justify-center bg-blue-600 text-white rounded hover:bg-blue-700
-                                                   w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2'
-                                    >
-                                        <FileDownIcon className='w-5 h-5' />
-                                        <span className='hidden sm:inline ml-2'>All</span>
-                                    </button>
-                                </Tooltip.Trigger>
-                                <Tooltip.Content className='bg-gray-800 text-white text-xs rounded px-2 py-1 shadow-md'>
-                                    Download All schemas
-                                    <Tooltip.Arrow className='fill-gray-800' />
-                                </Tooltip.Content>
-                            </Tooltip.Root>
-                        </div>
-                    )}
+                    {optionsMenu && <div className='flex flex-row flex-wrap justify-center sm:justify-start gap-3'>{optionsMenu}</div>}
                 </div>
             )}
 
@@ -163,16 +107,11 @@ export default function DataTable({
                         <tr>
                             {selectable && (
                                 <th className='py-2 px-4 text-center'>
-                                    <input
-                                        type='checkbox'
-                                        checked={items.length > 0 && selectedIds.length === items.length}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedIds(items.map((i) => i.id || i.key || JSON.stringify(i)));
-                                            } else {
-                                                setSelectedIds([]);
-                                            }
-                                        }}
+                                    <SelectAllCheckbox
+                                        items={items}
+                                        selectedIds={selectedIds || []}
+                                        idKey={idKey}
+                                        onChange={setSelectedIds || (() => {})}
                                     />
                                 </th>
                             )}
@@ -193,8 +132,11 @@ export default function DataTable({
                             items.map((item) => (
                                 <React.Fragment key={item.id || item.key || JSON.stringify(item)}>
                                     {renderRow(item, {
-                                        isSelected: selectedIds.includes(item.id || item.key || JSON.stringify(item)),
+                                        isSelected: selectable && selectedIds ? selectedIds.includes(idKey(item)) : false,
                                         toggleRow: () => toggleRow(item),
+                                        selectionCheckbox: selectable && (
+                                            <RowCheckbox item={item} idKey={idKey} selectedIds={selectedIds || []} onToggle={toggleRow} />
+                                        ),
                                     })}
                                 </React.Fragment>
                             ))

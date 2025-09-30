@@ -10,20 +10,23 @@ export function usePagination({ initialPage = 1, initialPageSize = 10 } = {}) {
 
     // Handlers
     const goToPage = useCallback(
-        (newPage) => {
-            const safePage = Math.max(1, Math.min(newPage, totalPages));
-            setPage(safePage);
+        (next) => {
+            const proposed = typeof next === "function" ? next(page) : next;
+            const numeric = Number(proposed);
+            const safe = Number.isFinite(numeric) ? numeric : 1;
+            const clamped = Math.max(1, Math.min(safe, totalPages));
+            setPage(clamped);
         },
-        [totalPages]
+        [page, totalPages]
     );
 
     const nextPage = useCallback(() => {
-        setPage((prev) => Math.min(prev + 1, totalPages));
-    }, [totalPages]);
+        goToPage((prev) => prev + 1);
+    }, [goToPage]);
 
     const prevPage = useCallback(() => {
-        setPage((prev) => Math.max(prev - 1, 1));
-    }, []);
+        goToPage((prev) => prev - 1);
+    }, [goToPage]);
 
     // Reset when data set changes
     const reset = useCallback(() => {
