@@ -43,7 +43,23 @@ class AuditMiddleware(MiddlewareMixin):
         return response
 
     def get_client_ip(self, request):
+        """
+        Extract the client IP address from request headers.
+        Strips any port information and handles both IPv4 and IPv6.
+        """
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            return x_forwarded_for.split(",")[0]
-        return request.META.get("REMOTE_ADDR")
+            # X-Forwarded-For can be a comma-separated list; take the first one
+            ip = x_forwarded_for.split(",")[0].strip()
+        else:
+            ip = request.META.get("REMOTE_ADDR", "")
+
+        # Handle IPv4 with port (e.g. "190.143.254.74:55718")
+        if ip.count(":") == 1 and "." in ip:
+            ip = ip.split(":")[0]
+
+        # Handle IPv6 with port (e.g. "[2001:db8::1]:55718")
+        if ip.startswith("[") and "]" in ip:
+            ip = ip.split("]")[0].lstrip("[")
+
+        return ip
