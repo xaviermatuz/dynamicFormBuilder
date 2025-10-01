@@ -23,13 +23,7 @@ export async function deleteForm(deleteItem, id, user) {
     return deleteItem("forms", id, user);
 }
 
-//Creation/Edition through modal
-export const FormService = {
-    create: async (form) => {
-        return request({
-            endpoint: "/forms/",
-            method: "POST",
-            body: form,
-        });
-    },
-};
+//Edition through modal
+export async function updatedForm(request, id, form) {
+    return request({ endpoint: `/forms/${id}/`, method: "PATCH", body: form });
+}

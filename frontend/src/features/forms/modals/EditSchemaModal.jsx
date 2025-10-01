@@ -1,142 +1,36 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { notifySuccess, notifyError } from "../../../utils/toast";
+import FieldEditor from "../../../common/components/FieldEditor";
+import { useSchemaForm } from "../../../hooks/api/useCreateForm";
+import { updatedForm } from "../../../services/FormService";
 import { useApi } from "../../../hooks/api/useApi";
 
-export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, editItem, fetchData, page, pageSize }) {
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [fields, setFields] = useState([]);
-    const [fieldErrors, setFieldErrors] = useState({});
-    const [atLeastOneError, setatLeastOneError] = useState("");
-    const [nameError, setNameError] = useState("");
+export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, editItem }) {
+    const { request } = useApi();
+    const queryClient = useQueryClient();
+    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors } = useSchemaForm(editItem);
 
-    const { request, loading: apiLoading, error } = useApi();
-
-    // Initialize modal state when editItem changes
-    useEffect(() => {
-        if (editItem) {
-            setName(editItem.name || "");
-            setDescription(editItem.description || "");
-            setFields(editItem.fields || []);
-        }
-    }, [editItem]);
-
-    const handleAddField = () => {
-        setFields([...fields, { name: "", label: "", field_type: "text", required: false, order: fields.length + 1, options: [] }]);
-    };
-
-    const handleRemoveField = (index) => {
-        const updatedFields = fields.filter((_, i) => i !== index).map((f, i) => ({ ...f, order: i + 1 }));
-        setFields(updatedFields);
-    };
-
-    const handleFieldChange = (index, key, value) => {
-        const updatedFields = [...fields];
-        updatedFields[index][key] = value;
-
-        if (key === "label") {
-            updatedFields[index].name = value.toLowerCase().replace(/\s+/g, "_");
-        }
-
-        setFields(updatedFields);
-
-        // Validate + update errors inline
-        setFieldErrors((prev) => {
-            const updatedErrors = { ...prev };
-            let fieldError = updatedErrors[index] ? { ...updatedErrors[index] } : {};
-
-            if (key === "label") {
-                if (!value.trim()) {
-                    fieldError.label = "Field label is required.";
-                } else {
-                    fieldError.label = "";
-                }
-            }
-
-            if (key === "options") {
-                if (!value || value.length === 0 || value.every((opt) => !opt.trim())) {
-                    fieldError.options = "Options are required for select fields.";
-                } else {
-                    fieldError.options = "";
-                }
-            }
-
-            // cleanup: remove empty error fields
-            if (!fieldError.label && !fieldError.options) {
-                delete updatedErrors[index];
-            } else {
-                updatedErrors[index] = fieldError;
-            }
-
-            return updatedErrors;
-        });
-    };
-
-    const validate = () => {
-        let valid = true;
-
-        if (!name.trim()) {
-            setNameError("Form name is required.");
-            valid = false;
-        } else if (fields.length === 0) {
-            setatLeastOneError("At least one field is required.");
-            valid = false;
-        } else {
-            setNameError("");
-            setatLeastOneError("");
-        }
-
-        const errors = {};
-        fields.forEach((field, idx) => {
-            const fieldError = {};
-
-            if (!field.label.trim()) {
-                fieldError.label = "Field label is required.";
-                valid = false;
-            }
-
-            if (field.field_type === "select" && (!field.options || field.options.length === 0 || field.options.every((opt) => !opt.trim()))) {
-                fieldError.options = "Options are required for select fields.";
-                valid = false;
-            }
-
-            if (Object.keys(fieldError).length > 0) {
-                errors[idx] = fieldError; // always object
-            }
-        });
-
-        setFieldErrors(errors);
-        return valid;
-    };
+    if (!isEditModalOpen || !editItem) return null;
 
     const handleSave = async () => {
         if (!validate()) return;
 
-        const payload = {
-            name,
-            description,
-            fields,
-        };
-
         try {
-            await request({
-                endpoint: `/forms/${editItem.id}/`,
-                method: "PATCH",
-                body: payload,
+            await updatedForm(request, editItem.id, {
+                name,
+                description,
+                fields,
             });
 
             notifySuccess("Form updated.");
-
-            await fetchData(page, pageSize);
-
+            queryClient.invalidateQueries({ queryKey: ["forms"] });
             setIsEditModalOpen(false);
         } catch (err) {
             console.error(err);
             notifyError("Error updating form.");
         }
     };
-
-    if (!isEditModalOpen || !editItem) return null;
 
     return (
         <div className='fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-2 sm:p-4'>
@@ -148,20 +42,10 @@ export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, e
                         type='text'
                         placeholder='Schema Name'
                         value={name}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setName(value);
-
-                            // Inline validation
-                            if (!value.trim()) {
-                                setNameError("Schema name is required.");
-                            } else {
-                                setNameError("");
-                            }
-                        }}
+                        onChange={(e) => setName(e.target.value)}
                         className='border p-2 rounded w-full'
                     />
-                    {nameError && <span className='text-red-500 text-sm'>{nameError}</span>}
+                    {errors.name && <span className='text-red-500 text-sm'>{errors.name}</span>}
                     <textarea
                         placeholder='Description'
                         value={description}
@@ -172,71 +56,13 @@ export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, e
 
                 <div className='mt-4 flex flex-col gap-3'>
                     <h4 className='font-medium'>Fields</h4>
-                    {atLeastOneError && <span className='text-red-500 text-sm'>{atLeastOneError}</span>}
-                    {fields.map((field, idx) => (
-                        <div key={idx} className='flex flex-col sm:flex-row gap-2 items-center border p-2 rounded'>
-                            <div className='flex-1 flex flex-col gap-1 w-auto'>
-                                <input
-                                    type='text'
-                                    placeholder='Field Label'
-                                    value={field.label}
-                                    onChange={(e) => handleFieldChange(idx, "label", e.target.value)}
-                                    className='border p-2 rounded flex-1'
-                                />
-                                {fieldErrors[idx]?.label && <span className='text-red-500 text-sm'>{fieldErrors[idx].label}</span>}
-                            </div>
+                    {errors.atLeastOne && <span className='text-red-500 text-sm'>{errors.atLeastOne}</span>}
 
-                            <select
-                                value={field.field_type}
-                                onChange={(e) => handleFieldChange(idx, "field_type", e.target.value)}
-                                className='border p-2 rounded'
-                            >
-                                <option value='text'>Text</option>
-                                <option value='number'>Number</option>
-                                <option value='date'>Date</option>
-                                <option value='select'>Select</option>
-                            </select>
-
-                            <input
-                                type='checkbox'
-                                checked={field.required}
-                                onChange={(e) => handleFieldChange(idx, "required", e.target.checked)}
-                                className='mt-1'
-                            />
-
-                            <div className='w-auto'>
-                                {field.field_type === "select" && (
-                                    <div className='flex-1 flex flex-col gap-1 w-full'>
-                                        <input
-                                            type='text'
-                                            placeholder='Options (comma-separated)'
-                                            value={field.options.join(",")}
-                                            onChange={(e) =>
-                                                handleFieldChange(
-                                                    idx,
-                                                    "options",
-                                                    e.target.value.split(",").map((opt) => opt.trim())
-                                                )
-                                            }
-                                            className={`border p-2 rounded flex-1 ${
-                                                fieldErrors[idx]?.options ? "border-red-500" : "border-gray-300"
-                                            }`}
-                                        />
-                                    </div>
-                                )}
-                                {fieldErrors[idx]?.options && <span className='text-red-500 text-sm'>{fieldErrors[idx].options}</span>}
-                            </div>
-
-                            <button
-                                onClick={() => handleRemoveField(idx)}
-                                className='px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 mt-2 sm:mt-0'
-                            >
-                                Remove
-                            </button>
-                        </div>
+                    {fields.map((f, i) => (
+                        <FieldEditor key={i} field={f} index={i} onChange={updateField} onRemove={removeField} error={errors.fields?.[i]} />
                     ))}
 
-                    <button onClick={handleAddField} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
+                    <button onClick={addField} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
                         Add Field
                     </button>
                 </div>

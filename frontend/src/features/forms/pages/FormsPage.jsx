@@ -237,7 +237,17 @@ export default function FormsPage() {
 
                                         {user && user.roles?.includes("admin") && (
                                             <>
-                                                <StateFilterDropdown filterState={filterState} setFilterState={setFilterState} />
+                                                <StateFilterDropdown
+                                                    filterState={filterState}
+                                                    setFilterState={setFilterState}
+                                                    storageKey='filterState'
+                                                    labelText='State:'
+                                                    options={[
+                                                        { value: "active", label: "Active Only" },
+                                                        { value: "deleted", label: "Deleted Only" },
+                                                        { value: "all", label: "All Forms" },
+                                                    ]}
+                                                />
 
                                                 <div className='flex items-center gap-2'>
                                                     <Tooltip.Root>

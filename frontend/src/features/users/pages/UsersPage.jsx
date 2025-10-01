@@ -9,6 +9,7 @@ import DataTable from "../../../common/components/DataTable";
 import { useApi } from "../../../hooks/api/useApi";
 import { useUsers } from "../../../hooks/api/useUsers";
 import { UserRow } from "../../../common/components/UserRow";
+import StateFilterDropdown from "../../../common/components/stateFilterDropdown";
 
 export default function UsersPage() {
     const { user } = useAuth();
@@ -116,19 +117,17 @@ export default function UsersPage() {
                                             </Tooltip.Root>
                                         </div>
                                         <div className='flex items-center gap-2'>
-                                            <label htmlFor='stateFilter' className='text-sm font-medium'>
-                                                Filter:
-                                            </label>
-                                            <select
-                                                id='stateFilter'
-                                                value={filterState}
-                                                onChange={(e) => setFilterState(e.target.value)}
-                                                className='border rounded px-2 py-1'
-                                            >
-                                                <option value='active'>Active Only</option>
-                                                <option value='deleted'>Inactive Only</option>
-                                                <option value='all'>All</option>
-                                            </select>
+                                            <StateFilterDropdown
+                                                filterState={filterState}
+                                                setFilterState={setFilterState}
+                                                storageKey='filterState'
+                                                labelText='Filter:'
+                                                options={[
+                                                    { value: "active", label: "Active Only" },
+                                                    { value: "deleted", label: "Inactive Only" },
+                                                    { value: "all", label: "All" },
+                                                ]}
+                                            />
                                         </div>
                                     </>
                                 )}

@@ -1,27 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export function useCreateSchemaForm() {
+export function useSchemaForm(editItem = null) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [fields, setFields] = useState([]);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState({
+        name: "",
+        atLeastOne: "",
+        fields: {},
+    });
 
+    // Reset state completely
     const reset = () => {
         setName("");
         setDescription("");
         setFields([]);
-        setErrors({});
+        setErrors({ name: "", atLeastOne: "", fields: {} });
     };
+
+    // Populate form if editing
+    useEffect(() => {
+        if (editItem) {
+            setName(editItem.name || "");
+            setDescription(editItem.description || "");
+            setFields(editItem.fields || []);
+        } else {
+            reset();
+        }
+    }, [editItem]);
 
     const addField = () => {
         setFields((prev) => [...prev, { name: "", label: "", field_type: "text", required: false, order: prev.length + 1, options: [] }]);
     };
 
     const removeField = (index) => {
-        setFields((prev) => prev.filter((_, i) => i !== index));
+        setFields((prev) => prev.filter((_, i) => i !== index).map((f, i) => ({ ...f, order: i + 1 })));
+
         setErrors((prev) => {
             const copy = { ...prev };
             delete copy[index];
+            return copy;
+        });
+    };
+
+    const validateField = (index, key, value) => {
+        setErrors((prev) => {
+            const copy = { ...prev, fields: { ...prev.fields } };
+            const fieldErrors = copy.fields[index] ? { ...copy.fields[index] } : {};
+
+            if (key === "label") {
+                fieldErrors.label = !value.trim() ? "Field label is required." : "";
+            }
+
+            if (key === "options") {
+                fieldErrors.options =
+                    !value || value.length === 0 || value.every((opt) => !opt.trim()) ? "Options are required for select fields." : "";
+            }
+
+            // cleanup
+            if (!fieldErrors.label && !fieldErrors.options) {
+                delete copy.fields[index];
+            } else {
+                copy.fields[index] = fieldErrors;
+            }
             return copy;
         });
     };
@@ -30,6 +71,7 @@ export function useCreateSchemaForm() {
         setFields((prev) => {
             const copy = [...prev];
             copy[index][key] = value;
+
             if (key === "label") {
                 copy[index].name = value.toLowerCase().replace(/\s+/g, "_");
             }
@@ -56,40 +98,17 @@ export function useCreateSchemaForm() {
         if (liveValidate) validateName(value);
     };
 
-    const validateField = (index, key, value) => {
-        setErrors((prev) => {
-            const copy = { ...prev };
-            const fieldErrors = copy[index] ? { ...copy[index] } : {};
-
-            if (key === "label") {
-                fieldErrors.label = !value.trim() ? "Field label is required." : "";
-            }
-
-            if (key === "options") {
-                fieldErrors.options =
-                    !value || value.length === 0 || value.every((opt) => !opt.trim()) ? "Options are required for select fields." : "";
-            }
-
-            // cleanup
-            if (!fieldErrors.label && !fieldErrors.options) {
-                delete copy[index];
-            } else {
-                copy[index] = fieldErrors;
-            }
-            return copy;
-        });
-    };
-
     const validate = () => {
         let valid = true;
-        const newErrors = {};
+        const newErrors = { name: "", atLeastOne: "", fields: {} };
 
         if (!name.trim()) {
             newErrors.name = "Form name is required.";
             valid = false;
         }
+
         if (fields.length === 0) {
-            newErrors.fields = "At least one field is required.";
+            newErrors.atLeastOne = "At least one field is required.";
             valid = false;
         }
 
@@ -104,7 +123,7 @@ export function useCreateSchemaForm() {
                 valid = false;
             }
             if (Object.keys(fieldErrors).length > 0) {
-                newErrors[i] = fieldErrors;
+                newErrors.fields[i] = fieldErrors;
             }
         });
 

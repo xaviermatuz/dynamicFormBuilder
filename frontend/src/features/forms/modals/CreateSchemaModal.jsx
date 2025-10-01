@@ -1,10 +1,10 @@
 import React from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { useCreateSchemaForm } from "../../../hooks/api/useCreateForm";
-import { notifySuccess, notifyError } from "../../../utils/toast";
+import { useSchemaForm } from "../../../hooks/api/useCreateForm";
+import { notifyError } from "../../../utils/toast";
 
 export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
-    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors, reset } = useCreateSchemaForm();
+    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors, reset } = useSchemaForm();
 
     if (!isOpen) return null;
 
@@ -48,7 +48,7 @@ export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
                     {/* Fields */}
                     <div className='mt-4 flex flex-col gap-3'>
                         <h4 className='font-medium'>Fields</h4>
-                        {errors.fields && <span className='text-red-500 text-sm'>{errors.fields}</span>}
+                        {errors.atLeastOne && <span className='text-red-500 text-sm'>{errors.atLeastOne}</span>}
 
                         {fields.map((f, i) => (
                             <div key={i} className='flex flex-col sm:flex-row gap-2 items-center border p-2 rounded'>
@@ -58,9 +58,9 @@ export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
                                         placeholder='Field Label'
                                         value={f.label}
                                         onChange={(e) => updateField(i, "label", e.target.value)}
-                                        className={`border p-2 rounded flex-1 ${errors[i]?.label ? "border-red-500" : ""}`}
+                                        className={`border p-2 rounded flex-1 ${errors.fields?.[i]?.label ? "border-red-500" : ""}`}
                                     />
-                                    {errors[i]?.label && <span className='text-red-500 text-sm'>{errors[i]?.label}</span>}
+                                    {errors.fields?.[i]?.label && <span className='text-red-500 text-sm'>{errors.fields[i].label}</span>}
                                 </div>
 
                                 <select
@@ -102,8 +102,11 @@ export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
                                                         e.target.value.split(",").map((opt) => opt.trim())
                                                     )
                                                 }
-                                                className={`border p-2 rounded flex-1 ${f?.options ? "border-red-500" : "border-gray-300"}`}
+                                                className={`border p-2 rounded flex-1 ${
+                                                    errors.fields?.[i]?.options ? "border-red-500" : "border-gray-300"
+                                                }`}
                                             />
+                                            {errors.fields?.[i]?.options && <span className='text-red-500 text-sm'>{errors.fields[i].options}</span>}
                                         </div>
                                     )}
                                 </div>

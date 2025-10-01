@@ -108,17 +108,6 @@ export default function CreateUserModal({ isCreationModalOpen, setIsCreationModa
                 body: formData,
             });
 
-            // if (!response.ok) {
-            //     const errData = await response.json().catch(() => ({}));
-
-            //     // Build a readable error message
-            //     const message = Object.entries(errData)
-            //         .map(([field, messages]) => `${messages.join(", ")}`)
-            //         .join("\n");
-
-            //     throw new Error(message || "Failed to create user");
-            // }
-
             notifySuccess("User created successfully.");
             handleClose();
             if (fetchData) fetchData();
@@ -136,8 +125,6 @@ export default function CreateUserModal({ isCreationModalOpen, setIsCreationModa
                 <h3 className='text-xl sm:text-2xl font-semibold mb-4'>Create User</h3>
 
                 <div className='flex flex-col gap-3'>
-                    {/* <div className='flex items-center border rounded p-2'>
-                        <UserIcon className='w-5 h-5 mr-2 text-gray-500' /> */}
                     <input
                         type='text'
                         placeholder='Username'
