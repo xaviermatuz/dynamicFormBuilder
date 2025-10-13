@@ -2,7 +2,7 @@
 module.exports = {
     content: [
         "./index.html", // Vite entry point
-        "./src/**/*.{js,jsx}", // All JS and JSX files in src
+        "./src/**/*.{js,ts,jsx,tsx}", // All JS and JSX files in src
     ],
     theme: {
         extend: {

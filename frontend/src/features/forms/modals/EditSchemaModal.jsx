@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { notifySuccess, notifyError } from "../../../utils/toast";
 import FieldEditor from "../../../common/components/FieldEditor";
+import FieldList from "../../../common/components/FieldList";
 import { useSchemaForm } from "../../../hooks/api/useCreateForm";
 import { updatedForm } from "../../../services/FormService";
 import { useApi } from "../../../hooks/api/useApi";
@@ -9,7 +10,8 @@ import { useApi } from "../../../hooks/api/useApi";
 export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, editItem }) {
     const { request } = useApi();
     const queryClient = useQueryClient();
-    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors } = useSchemaForm(editItem);
+    const { name, setName, description, setDescription, fields, setFields, addField, removeField, updateField, validate, errors } =
+        useSchemaForm(editItem);
 
     if (!isEditModalOpen || !editItem) return null;
 
@@ -58,9 +60,7 @@ export default function EditSchemaModal({ isEditModalOpen, setIsEditModalOpen, e
                     <h4 className='font-medium'>Fields</h4>
                     {errors.atLeastOne && <span className='text-red-500 text-sm'>{errors.atLeastOne}</span>}
 
-                    {fields.map((f, i) => (
-                        <FieldEditor key={i} field={f} index={i} onChange={updateField} onRemove={removeField} error={errors.fields?.[i]} />
-                    ))}
+                    <FieldList fields={fields} setFields={setFields} updateField={updateField} removeField={removeField} errors={errors} />
 
                     <button onClick={addField} className='px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
                         Add Field

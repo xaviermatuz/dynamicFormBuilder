@@ -1,16 +1,31 @@
 version: "3.9"
 
 services:
+  db:
+      image: postgres:16
+      container_name: postgres_db
+      restart: always
+      environment:
+        POSTGRES_DB: ${DATABASE_NAME}
+        POSTGRES_USER: ${DATABASE_USER}
+        POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      ports:
+        - "5433:5432"   # avoid conflict if you have local Postgres
+      networks:
+        - app_network
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: ./Dockerfile.dev
     container_name: django_backend
     restart: always
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
 
     volumes:
       - ./backend:/app
+      - /app/logs
     env_file:
       - .env.docker
     depends_on:
@@ -23,7 +38,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: ./Dockerfile.dev
     container_name: react_frontend
     restart: always
     command: npm run dev -- --host
@@ -36,3 +51,10 @@ services:
       - backend
     networks:
       - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

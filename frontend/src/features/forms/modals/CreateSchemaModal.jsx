@@ -1,10 +1,12 @@
 import React from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import FieldList from "../../../common/components/FieldList";
 import { useSchemaForm } from "../../../hooks/api/useCreateForm";
 import { notifyError } from "../../../utils/toast";
 
 export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
-    const { name, setName, description, setDescription, fields, addField, removeField, updateField, validate, errors, reset } = useSchemaForm();
+    const { name, setName, description, setDescription, fields, setFields, addField, removeField, updateField, validate, errors, reset } =
+        useSchemaForm();
 
     if (!isOpen) return null;
 
@@ -50,7 +52,8 @@ export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
                         <h4 className='font-medium'>Fields</h4>
                         {errors.atLeastOne && <span className='text-red-500 text-sm'>{errors.atLeastOne}</span>}
 
-                        {fields.map((f, i) => (
+                        <FieldList fields={fields} setFields={setFields} updateField={updateField} removeField={removeField} errors={errors} />
+                        {/* {fields.map((f, i) => (
                             <div key={i} className='flex flex-col sm:flex-row gap-2 items-center border p-2 rounded'>
                                 <div className='flex-1 flex flex-col gap-1 w-auto'>
                                     <input
@@ -115,7 +118,7 @@ export default function CreateSchemaModal({ isOpen, onClose, onSave }) {
                                     Remove
                                 </button>
                             </div>
-                        ))}
+                        ))} */}
 
                         <button onClick={addField} className='mt-3 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'>
                             Add Field

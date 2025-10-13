@@ -15,9 +15,11 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 
+RUN mkdir -p /app/logs && chmod -R 755 /app/logs
+
 # Copy entrypoint
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# COPY entrypoint.sh /entrypoint.sh
+# ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 8000
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

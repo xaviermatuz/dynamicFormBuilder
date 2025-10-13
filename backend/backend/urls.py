@@ -17,13 +17,19 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from api.v1.views import CustomTokenObtainPairView
+from django.http import JsonResponse
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+def healthz(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
     # Admin route
     path("api/v1/admin/", admin.site.urls),
+    path("healthz/", healthz), 
+    path("api/v1/healthz/", healthz),
 
     # Authentication routes (JWT)
     path("api/v1/auth/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),

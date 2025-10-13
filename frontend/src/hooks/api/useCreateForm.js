@@ -10,7 +10,7 @@ export function useSchemaForm(editItem = null) {
         fields: {},
     });
 
-    // Reset state completely
+    // Reset
     const reset = () => {
         setName("");
         setDescription("");
@@ -18,35 +18,72 @@ export function useSchemaForm(editItem = null) {
         setErrors({ name: "", atLeastOne: "", fields: {} });
     };
 
-    // Populate form if editing
     useEffect(() => {
         if (editItem) {
             setName(editItem.name || "");
             setDescription(editItem.description || "");
-            setFields(editItem.fields || []);
+            setFields(
+                (editItem.fields || []).map((f, i) => ({
+                    ...f,
+                    id: f.id ?? crypto.randomUUID(), // preserve backend id if it exists
+                    order: f.order ?? i + 1,
+                    options: f.options || [],
+                }))
+            );
         } else {
             reset();
         }
     }, [editItem]);
 
+    // Add field
     const addField = () => {
-        setFields((prev) => [...prev, { name: "", label: "", field_type: "text", required: false, order: prev.length + 1, options: [] }]);
+        setFields((prev) => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                name: "",
+                label: "",
+                field_type: "text",
+                required: false,
+                order: prev.length + 1,
+                options: [],
+            },
+        ]);
     };
 
-    const removeField = (index) => {
-        setFields((prev) => prev.filter((_, i) => i !== index).map((f, i) => ({ ...f, order: i + 1 })));
+    // Remove field
+    const removeField = (id) => {
+        setFields((prev) => prev.filter((f) => f.id !== id).map((f, i) => ({ ...f, order: i + 1 })));
 
         setErrors((prev) => {
-            const copy = { ...prev };
-            delete copy[index];
+            const copy = { ...prev, fields: { ...prev.fields } };
+            delete copy.fields[id];
             return copy;
         });
     };
 
-    const validateField = (index, key, value) => {
+    // Update field
+    const updateField = (id, key, value, liveValidate = true) => {
+        console.log("updateField called:", id, key, value); // 🔍 DEBUG
+        setFields((prev) =>
+            prev.map((f) => {
+                if (f.id !== id) return f;
+                const updated = { ...f, [key]: value };
+                if (key === "label") {
+                    updated.name = value.toLowerCase().replace(/\s+/g, "_");
+                }
+                return updated;
+            })
+        );
+
+        if (liveValidate) validateField(id, key, value);
+    };
+
+    // Validation
+    const validateField = (id, key, value) => {
         setErrors((prev) => {
             const copy = { ...prev, fields: { ...prev.fields } };
-            const fieldErrors = copy.fields[index] ? { ...copy.fields[index] } : {};
+            const fieldErrors = copy.fields[id] ? { ...copy.fields[id] } : {};
 
             if (key === "label") {
                 fieldErrors.label = !value.trim() ? "Field label is required." : "";
@@ -57,28 +94,13 @@ export function useSchemaForm(editItem = null) {
                     !value || value.length === 0 || value.every((opt) => !opt.trim()) ? "Options are required for select fields." : "";
             }
 
-            // cleanup
             if (!fieldErrors.label && !fieldErrors.options) {
-                delete copy.fields[index];
+                delete copy.fields[id];
             } else {
-                copy.fields[index] = fieldErrors;
+                copy.fields[id] = fieldErrors;
             }
             return copy;
         });
-    };
-
-    const updateField = (index, key, value, liveValidate = true) => {
-        setFields((prev) => {
-            const copy = [...prev];
-            copy[index][key] = value;
-
-            if (key === "label") {
-                copy[index].name = value.toLowerCase().replace(/\s+/g, "_");
-            }
-            return copy;
-        });
-
-        if (liveValidate) validateField(index, key, value);
     };
 
     const validateName = (value) => {
@@ -112,7 +134,7 @@ export function useSchemaForm(editItem = null) {
             valid = false;
         }
 
-        fields.forEach((f, i) => {
+        fields.forEach((f) => {
             const fieldErrors = {};
             if (!f.label.trim()) {
                 fieldErrors.label = "Field label is required.";
@@ -123,7 +145,7 @@ export function useSchemaForm(editItem = null) {
                 valid = false;
             }
             if (Object.keys(fieldErrors).length > 0) {
-                newErrors.fields[i] = fieldErrors;
+                newErrors.fields[f.id] = fieldErrors;
             }
         });
 
@@ -137,6 +159,7 @@ export function useSchemaForm(editItem = null) {
         description,
         setDescription,
         fields,
+        setFields, // ✅ for drag-and-drop
         addField,
         removeField,
         updateField,

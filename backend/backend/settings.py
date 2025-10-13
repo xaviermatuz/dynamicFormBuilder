@@ -171,12 +171,18 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-if DEBUG:
-    # Development: allow all
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    # Production: read allowed origins from env
-    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+
+CORS_ALLOW_ALL_ORIGINS = True
+# if DEBUG:
+#     # Development: allow all
+#     CORS_ALLOW_ALL_ORIGINS = True
+# else:
+#     # Production: read allowed origins from env
+#     CORS_ALLOWED_ORIGINS = os.getenv(
+#         "CORS_ALLOWED_ORIGINS",
+#         "http://localhost:5173,http://127.0.0.1:5173"
+#     ).split(",")
+
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
@@ -195,6 +201,11 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
         },
+        "file": {
+        "level": "DEBUG",
+        "class": "logging.FileHandler",
+        "filename": os.path.join(BASE_DIR, "logs/django.log"),
+        },
     },
     "loggers": {
         "audit": {
@@ -204,7 +215,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console"],
-        "level": "WARNING",
+        "handlers": ["console", "file"],
+        "level": "INFO",
     },
 }

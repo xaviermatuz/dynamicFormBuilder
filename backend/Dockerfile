@@ -11,7 +11,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    netcat-openbsd \ 
+    netcat-openbsd \
+    curl \
+    procps \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar dependencias de Python
@@ -21,11 +24,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar proyecto
 COPY . .
 
+RUN mkdir -p /app/logs && chmod -R 755 /app/logs
+
 COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Puerto para gunicorn
 EXPOSE 8000
-
-# Comando de arranque con Gunicorn
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
